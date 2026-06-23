@@ -5,22 +5,21 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
 
-from agent import CHAT_COMPLETIONS_API_KEY, CHAT_COMPLETIONS_URL
-from tools import read_file, run_terminal_command, write_to_file
+from constants import CHAT_COMPLETIONS_API_KEY, CHAT_COMPLETIONS_URL, DEFAULT_MODEL
+from tools import read_file, run_terminal_command_with_confirm, write_to_file
 
-DEFAULT_MODEL = "deepseek-chat"
 
 
 class DeepSeekClient:
     """封装最薄的一层 DeepSeek Chat Completions API 调用。"""
-    def __init__(self, model: str):
-        self.model = model
+    def __init__(self, model_name: str):
+        self.model_name = model_name
         self.api_key = CHAT_COMPLETIONS_API_KEY
 
     def chat(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """请求 DeepSeek，并返回 choices[0].message。"""
         body: Dict[str, Any] = {
-            "model": self.model,
+            "model": self.model_name,
             "messages": messages,
         }
         if tools:
@@ -147,10 +146,6 @@ class ReactAgent:
 
     def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """执行本地工具函数，并把异常也转成文本返回给模型。"""
-        if tool_name == "run_terminal_command":
-            should_continue = input("模型想执行终端命令，是否允许？（Y/N）：")
-            if should_continue.lower() != "y":
-                return "用户拒绝执行终端命令。"
         try:
             result = self.tools[tool_name](**arguments)
         except Exception as exc:
@@ -161,11 +156,11 @@ class ReactAgent:
 
 if __name__ == "__main__":
     project_dir = os.path.abspath("snack")
-    model_name = os.getenv("DEEPSEEK_MODEL", DEFAULT_MODEL)
+    model_name = DEFAULT_MODEL
 
     model = DeepSeekClient(model_name)
     agent = ReactAgent(
-        tools=[read_file, write_to_file, run_terminal_command],
+        tools=[read_file, write_to_file, run_terminal_command_with_confirm],
         model=model,
         project_directory=project_dir,
     )

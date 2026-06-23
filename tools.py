@@ -26,15 +26,23 @@ def write_to_file(file_path: str, content: str) -> str:
     return "写入成功"
 
 
-def run_terminal_command(command: str) -> str:
+def _run_terminal_command(command: str) -> str:
     """执行终端命令"""
     import subprocess
     run_result = subprocess.run(command, shell=True, capture_output=True, text=True)
     return run_result.stdout
 
 
+def run_terminal_command_with_confirm(command: str) -> str:
+    """执行终端命令前询问用户确认。"""
+    should_continue = input(f"\n模型想执行终端命令：{command}\n是否允许？（Y/N）：")
+    if should_continue.lower() != "y":
+        print("\n操作已取消。")
+        return "用户拒绝执行终端命令。"
+    return _run_terminal_command(command)
+
+
 def web_search(query: str) -> str:
     """搜索网络信息（模拟）"""
     # 实际使用时，可替换为真实的搜索 API（如 Tavily、博查等）
     return f"模拟搜索结果：关于“{query}”，未找到真实数据。"
-

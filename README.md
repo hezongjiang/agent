@@ -132,7 +132,6 @@ def plan_and_execute(question: str, tools: dict):
     return llm.generate(f"根据以下执行结果回答问题：{results}")
 ```
 
-
 ## 7、小结
 
 Plan-and-Execute 是针对 ReAct「长任务容易跑偏」的痛点，做的针对性优化：ReAct 是「走一步看一步，边想边干」；Plan-and-Execute 是「先把完整计划定好，再按计划一步步干」，完全是两种做事思路。

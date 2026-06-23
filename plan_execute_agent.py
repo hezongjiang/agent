@@ -10,22 +10,18 @@ from tools import read_file, run_terminal_command_with_confirm, write_to_file
 class PlannerAgent:
     """负责把用户任务拆成多个可执行步骤。"""
 
-    def __init__(self, client: DeepSeekClient, project_directory: str):
+    def __init__(self, client: DeepSeekClient):
         self.client = client
-        self.project_directory = os.path.abspath(project_directory)
 
     def make_plan(self, task: str) -> List[str]:
         """生成初始计划，返回字符串步骤列表。"""
         prompt = f"""
-请把用户任务拆成 2 到 3 个可以逐步执行的步骤。
-只输出 JSON，不要输出额外内容。
-
+你负责规划规划，负责把用户任务拆成可逐步执行的步骤。只输出 JSON，不要输出额外内容。
 输出格式：
 {{
   "steps": ["步骤1", "步骤2"]
 }}
-
-用户任务：{task}，操作目录：{self.project_directory}
+用户任务：{task}
 """
         print("\n正在生成计划...")
         message = self.client.chat([{"role": "user", "content": prompt}])
@@ -51,14 +47,12 @@ class StepEvaluator:
         }
         """
         prompt = f"""
-你是一个任务执行评估器。请根据原始任务、当前步骤和该步骤的执行结果，判断该步骤是否已成功完成。
-
+你负责任务执行评估。请根据原始任务、当前步骤和该步骤的执行结果，判断该步骤是否已成功完成。
 输出 JSON，不要输出额外内容：
 {{
   "passed": true/false,
   "feedback": "如果未通过，说明缺失什么或哪里不对；如果通过，填空字符串"
 }}
-
 原始任务：{task}
 当前步骤：{step}
 执行结果：{result}
@@ -79,13 +73,10 @@ class FinalSummarizer:
         self.client = client
 
     def summarize(self, task: str, results: List[Tuple[str, str]]) -> str:
-        result_text = "\n".join(
-            f"{i}. 步骤：{step}\n   结果：{result}" for i, (step, result) in enumerate(results, 1)
-        )
+        result_text = "\n".join(f"{i}. 步骤：{step}\n   结果：{result}" for i, (step, result) in enumerate(results, 1))
         prompt = (
-            "你负责智能总结。\n"
-            "请根据执行记录给出最终答案，语言简洁。\n\n"
-            f"用户原始任务：{task}\n\n"
+            "你负责智能总结，根据执行记录给出最终结果。\n"
+            f"用户原始任务：{task}\n"
             f"执行记录：\n{result_text}"
         )
         message = self.client.chat([{"role": "user", "content": prompt}])
@@ -152,9 +143,7 @@ class EvaluationOrchestrator:
                          previous_results: List[Tuple[str, str]],
                          feedback: str) -> str:
         if previous_results:
-            history = "\n".join(
-                f"- 已完成步骤：{done_step}\n  结果：{result}" for done_step, result in previous_results
-            )
+            history = "\n".join(f"- 已完成步骤：{done_step}\n  结果：{result}" for done_step, result in previous_results)
         else:
             history = "暂无"
 
@@ -168,12 +157,12 @@ class EvaluationOrchestrator:
 
 
 if __name__ == "__main__":
-    project_dir = os.path.abspath("snack")
+    project_dir = os.path.abspath("task")
     # 大模型
     model_name = DEFAULT_MODEL
     model = DeepSeekClient(model_name)
     # 计划
-    planner = PlannerAgent(model, project_dir)
+    planner = PlannerAgent(model)
     # 执行
     executor = ReactAgent(
         tools=[read_file, write_to_file, run_terminal_command_with_confirm],
@@ -184,7 +173,7 @@ if __name__ == "__main__":
     evaluator = StepEvaluator(model)
     # 总结
     summarizer = FinalSummarizer(model)
-
+    # 调度
     agent = EvaluationOrchestrator(
         planner=planner,
         executor=executor,

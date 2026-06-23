@@ -78,9 +78,8 @@ class ReactAgent:
             for tool_call in tool_calls:
                 tool_name, arguments = self.parse_tool_call(tool_call)
                 print(f"\n模型请求调用工具：{tool_name}({arguments})")
-
                 observation = self.execute_tool(tool_name, arguments)
-                print(f"工具返回结果：{observation}")
+                print(f"工具返回结果：{observation[:500]}")
 
                 messages.append({
                     "role": "tool",
@@ -155,7 +154,7 @@ class ReactAgent:
 
 
 if __name__ == "__main__":
-    project_dir = os.path.abspath("snack")
+    project_dir = os.path.abspath("task")
     model_name = DEFAULT_MODEL
 
     model = DeepSeekClient(model_name)

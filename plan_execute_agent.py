@@ -40,7 +40,7 @@ class StepEvaluator:
 
     def evaluate(self, task: str, step: str, result: str) -> dict[str, Any]:
         """
-        返回示例：
+        任务执行评估，返回示例：
         {
             "passed": True,
             "feedback": ""
@@ -159,8 +159,7 @@ class EvaluationOrchestrator:
 if __name__ == "__main__":
     project_dir = os.path.abspath("task")
     # 大模型
-    model_name = DEFAULT_MODEL
-    model = DeepSeekClient(model_name)
+    model = DeepSeekClient(DEFAULT_MODEL)
     # 计划
     planner = PlannerAgent(model)
     # 执行

@@ -34,7 +34,7 @@ class DeepSeekClient:
                 "Authorization": f"Bearer {self.api_key}",
             },
             json=body,
-            timeout=600,
+            timeout=300,
         )
 
         try:
@@ -86,6 +86,23 @@ class ReactAgent:
                     "tool_call_id": tool_call["id"],
                     "content": observation,
                 })
+
+            # 完成本轮所有工具调用后再压缩，避免拆开工具请求和结果。
+            messages = self.compress_memory(messages)
+
+    def compress_memory(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """消息达到 10 条时，将执行历史压缩为一条摘要。"""
+        if len(messages) < 10:
+            return messages
+
+        print("\n正在压缩历史消息...")
+        summary = self.model.chat([
+            {"role": "system", "content": "请简要总结任务执行进展，保留关键结果和待办事项，只输出摘要。"},
+            {"role": "user", "content": json.dumps(messages[1:], ensure_ascii=False)},
+        ])
+        return messages[:2] + [
+            {"role": "assistant", "content": f"历史执行摘要：{summary['content']}"},
+        ]
 
     def build_system_prompt(self) -> str:
         """构造尽量简单的系统提示，重点让模型知道工具边界和工作目录。"""
